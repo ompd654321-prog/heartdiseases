@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CardioScope — ANN Heart Disease Predictor</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ── Reset & Base ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #0d1b2a;
+  --surface:    #ffffff;
+  --surface2:   #f0f5fb;
+  --accent:     #00b4d8;
+  --accent2:    #0077b6;
+  --success:    #0ead69;
+  --danger:     #ef233c;
+  --text:       #1a1a2e;
+  --muted:      #64748b;
+  --border:     #e2eaf3;
+  --radius:     16px;
+  --shadow:     0 8px 32px rgba(0,0,0,.12);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  min-height: 100vh;
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+/* ── Animated background ──────────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 20%, rgba(0,180,216,.18) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(0,119,182,.15) 0%, transparent 60%),
+    linear-gradient(135deg, #0d1b2a 0%, #1a2d44 100%);
+  pointer-events: none;
+}
+
+/* ── Layout ───────────────────────────────────────────────────── */
+.wrapper {
+  position: relative; z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px 60px;
+}
+
+/* ── Header ───────────────────────────────────────────────────── */
+header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 32px 0 36px;
+  animation: fadeDown .6s ease both;
+}
+
+.logo-icon {
+  width: 52px; height: 52px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 14px;
+  display: grid; place-items: center;
+  box-shadow: 0 4px 20px rgba(0,180,216,.4);
+}
+
+.logo-icon svg { width: 28px; height: 28px; }
+
+.logo-text h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -.5px;
+  line-height: 1;
+}
+
+.logo-text span {
+  font-size: .8rem;
+  font-weight: 400;
+  color: var(--accent);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* ── Main grid ────────────────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .grid { grid-template-columns: 1fr; }
+}
+
+/* ── Cards ────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 32px;
+  box-shadow: var(--shadow);
+  animation: fadeUp .6s ease both;
+}
+
+.card--right { animation-delay: .12s; }
+
+.card-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 24px;
+  letter-spacing: -.3px;
+}
+
+/* ── Form fields ──────────────────────────────────────────────── */
+.field { margin-bottom: 16px; }
+
+.field label {
+  display: block;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 7px;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+
+.input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute; left: 14px;
+  color: var(--muted);
+  display: flex;
+}
+
+.input-icon svg { width: 17px; height: 17px; }
+
+.field input,
+.field select {
+  width: 100%;
+  padding: 13px 14px 13px 42px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: .95rem;
+  color: var(--text);
+  background: var(--surface2);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  appearance: none;
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,180,216,.12);
+  background: #fff;
+}
+
+.field select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+/* ── Advanced toggle ──────────────────────────────────────────── */
+.advanced-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--accent2);
+  cursor: pointer;
+  margin-bottom: 16px;
+  user-select: none;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+.advanced-toggle svg { transition: transform .25s; }
+.advanced-toggle.open svg { transform: rotate(180deg); }
+
+.advanced-fields {
+  display: none;
+  padding: 16px;
+  background: var(--surface2);
+  border-radius: 10px;
+  margin-bottom: 16px;
+  border: 1.5px dashed var(--border);
+}
+
+.advanced-fields.visible { display: block; }
+
+.adv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* ── Submit button ────────────────────────────────────────────── */
+.btn-analyze {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Syne', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: .5px;
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+  box-shadow: 0 4px 20px rgba(0,180,216,.35);
+  margin-top: 8px;
+}
+
+.btn-analyze:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,180,216,.45); }
+.btn-analyze:active { transform: translateY(0); }
+.btn-analyze:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+/* ── Result banner ────────────────────────────────────────────── */
+.result-banner {
+  border-radius: 14px;
+  padding: 28px 24px;
+  margin-bottom: 24px;
+  text-align: center;
+  transition: all .4s;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.result-banner.idle {
+  background: var(--surface2);
+  border: 2px dashed var(--border);
+}
+
+.result-banner.healthy {
+  background: linear-gradient(135deg, #e8faf3 0%, #d0f5e8 100%);
+  border: 2px solid #a7f3d0;
+}
+
+.result-banner.disease {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 2px solid #fca5a5;
+}
+
+.result-label {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -.3px;
+}
+
+.result-label.healthy { color: var(--success); }
+.result-label.disease { color: var(--danger); }
+.result-label.idle    { color: var(--muted); font-size: 1rem; font-weight: 500; }
+
+.result-risk {
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.result-risk.healthy { color: var(--success); }
+.result-risk.disease { color: var(--danger); }
+
+.result-prob {
+  font-size: .9rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* ── Chart section ────────────────────────────────────────────── */
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.accuracy-badge {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  font-size: .78rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 20px;
+  letter-spacing: .5px;
+}
+
+.chart-wrap {
+  position: relative;
+  height: 220px;
+}
+
+.chart-caption {
+  font-size: .75rem;
+  color: var(--muted);
+  margin-top: 14px;
+  text-align: center;
+  font-style: italic;
+}
+
+/* ── About footer ─────────────────────────────────────────────── */
+.about {
+  margin-top: 28px;
+  padding: 20px 24px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 14px;
+  color: rgba(255,255,255,.6);
+  font-size: .82rem;
+  line-height: 1.6;
+  animation: fadeUp .6s .24s ease both;
+}
+
+.about strong { color: var(--accent); }
+
+/* ── Spinner ──────────────────────────────────────────────────── */
+.spinner {
+  width: 22px; height: 22px;
+  border: 3px solid rgba(255,255,255,.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+/* ── Keyframes ────────────────────────────────────────────────── */
+@keyframes fadeDown { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeUp   { from { opacity:0; transform:translateY(20px);  } to { opacity:1; transform:translateY(0); } }
+@keyframes spin     { to { transform: rotate(360deg); } }
+@keyframes pulse    { 0%,100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+
+.result-banner.animate { animation: pulse .5s ease; }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+
+  <!-- Header -->
+  <header>
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+      </svg>
+    </div>
+    <div class="logo-text">
+      <h1>CardioScope</h1>
+      <span>ANN Predictor</span>
+    </div>
+  <align="RIGHT">
+     <li><a href="about.html">About Project</a></li>
+  
+    </align>
+  </header>
+
+  <!-- Main Grid -->
+  <div class="grid">
+
+    <!-- LEFT: Input Card -->
+    <div class="card">
+      <p class="card-title">Patient Profile &amp; Vitals</p>
+
+      <!-- Age -->
+      <div class="field">
+        <label>Age (Years)</label>
+        <div class="input-wrap">
+          <span class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </span>
+          <input id="age" type="number" min="1" max="120" placeholder="e.g. 55" />
+        </div>
+      </div>
+
+      <!-- Gender -->
+      <div class="field">
+        <label>Gender</label>
+        <div class="input-wrap">
+          <span class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+          </span>
+          <select id="sex">
+            <option value="1">Male</option>
+            <option value="0">Female</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Cholesterol -->
+      <div class="field">
+        <label>Total Cholesterol (mg/dL)</label>
+        <div class="input-wrap">
+          <span class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="12" rx="10" ry="5"/><path d="M2 12c0 4 4.5 7 10 7s10-3 10-7"/></svg>
+          </span>
+          <input id="chol" type="number" min="100" max="600" placeholder="e.g. 240" />
+        </div>
+      </div>
+
+      <!-- Blood Pressure -->
+      <div class="field">
+        <label>Blood Pressure (Systolic mm Hg)</label>
+        <div class="input-wrap">
+          <span class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+          </span>
+          <input id="trestbps" type="number" min="80" max="220" placeholder="e.g. 130" />
+        </div>
+      </div>
+
+      <!-- Heart Rate -->
+      <div class="field">
+        <label>Max Heart Rate (BPM)</label>
+        <div class="input-wrap">
+          <span class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </span>
+          <input id="thalach" type="number" min="60" max="220" placeholder="e.g. 150" />
+        </div>
+      </div>
+
+      <!-- Advanced fields toggle -->
+      <button class="advanced-toggle" id="advToggle" onclick="toggleAdvanced()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9"/></svg>
+        Advanced Clinical Parameters
+      </button>
+
+      <div class="advanced-fields" id="advFields">
+        <div class="adv-grid">
+          <div class="field">
+            <label>Chest Pain Type (0-3)</label>
+            <div class="input-wrap">
+              <span class="input-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="17" height="17"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
+              <input id="cp" type="number" min="0" max="3" placeholder="1" value="1"/>
+            </div>
+          </div>
+          <div class="field">
+            <label>Fasting Blood Sugar</label>
+            <div class="input-wrap">
+              <span class="input-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="17" height="17"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/></svg></span>
+              <select id="fbs">
+                <option value="0">≤120 mg/dL (0)</option>
+                <option value="1">&gt;120 mg/dL (1)</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label>Rest ECG (0-2)</label>
+            <div class="input-wrap">
+              <span class="input-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="17" height="17"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
+              <input id="restecg" type="number" min="0" max="2" placeholder="1" value="1"/>
+            </div>
+          </div>
+          <div class="field">
+            <label>Exercise Angina</label>
+            <div class="input-wrap">
+              <span class="input-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="17" height="17"><circle cx="12" cy="12" r="10"/></svg></span>
+              <select id="exang">
+                <option value="0">No (0)</option>
+                <option value="1">Yes (1)</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label>ST Depression (Oldpeak)</label>
+            <div class="input-wrap">
+              <span class="input-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="17" height="17"><line x1="3" y1="12" x2="21" y2="12"/></svg></span>
+              <input id="oldpeak" type="number" min="0" max="10" step="0.1" placeholder="1.0" value="1.0"/>
+            </div>
+          </div>
+          <div class="field">
+            <label>Slope (0-2)</label>
+            <div class="input-wrap">
+              <span class="input-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="17" height="17"><line x1="3" y1="17" x2="21" y2="7"/></svg></span>
+              <input id="slope" type="number" min="0" max="2" placeholder="1" value="1"/>
+            </div>
+          </div>
+          <div class="field">
+            <label>CA (0-4)</label>
+            <div class="input-wrap">
+              <span class="input-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="17" height="17"><circle cx="12" cy="12" r="3"/></svg></span>
+              <input id="ca" type="number" min="0" max="4" placeholder="0" value="0"/>
+            </div>
+          </div>
+          <div class="field">
+            <label>Thal (0-3)</label>
+            <div class="input-wrap">
+              <span class="input-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="17" height="17"><circle cx="12" cy="12" r="10"/></svg></span>
+              <input id="thal" type="number" min="0" max="3" placeholder="2" value="2"/>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-analyze" id="analyzeBtn" onclick="analyze()">
+        Analyze Risk
+      </button>
+    </div><!-- /LEFT -->
+
+    <!-- RIGHT: Results Card -->
+    <div class="card card--right">
+
+      <!-- Result Banner -->
+      <div class="result-banner idle" id="resultBanner">
+        <span class="result-label idle">Enter patient vitals and click Analyze Risk</span>
+      </div>
+
+      <!-- Chart -->
+      <div class="chart-header">
+        <p class="card-title" style="margin:0">ANN Model Performance</p>
+        <span class="accuracy-badge" id="accBadge">Loading…</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="prChart"></canvas>
+      </div>
+      <p class="chart-caption">Precision–Recall curve of the ANN model on held-out test data.</p>
+
+    </div><!-- /RIGHT -->
+  </div><!-- /grid -->
+
+  <!-- About -->
+  <div class="about">
+    <strong>* CardioScope</strong> — Powered by a deep-learning Artificial Neural Network (MLP) trained on the UCI Heart Disease dataset.
+    Features include age, sex, cholesterol, blood pressure, heart rate, and clinical ECG parameters.
+    <strong>This tool is for educational purposes only. Always consult a licensed physician for medical decisions.</strong>
+  </div>
+
+</div><!-- /wrapper -->
+
+<script>
+// ── Advanced toggle ────────────────────────────────────────────
+function toggleAdvanced() {
+  const btn = document.getElementById('advToggle');
+  const box = document.getElementById('advFields');
+  btn.classList.toggle('open');
+  box.classList.toggle('visible');
+}
+
+// ── Load metrics and draw chart on page load ───────────────────
+let prChart = null;
+
+async function loadMetrics() {
+  try {
+    const res  = await fetch('/metrics');
+    const data = await res.json();
+
+    document.getElementById('accBadge').textContent = `Accuracy: ${data.accuracy}%`;
+
+    const ctx = document.getElementById('prChart').getContext('2d');
+
+    prChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.recall.map(r => r.toFixed(2)),
+        datasets: [{
+          label: 'Precision',
+          data: data.precision,
+          borderColor: '#0077b6',
+          backgroundColor: 'rgba(0,180,216,.10)',
+          borderWidth: 2.5,
+          fill: true,
+          tension: 0.35,
+          pointRadius: 3,
+          pointBackgroundColor: '#00b4d8',
+          pointHoverRadius: 6,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: items => `Recall: ${items[0].label}`,
+              label:  item  => `Precision: ${(item.raw * 100).toFixed(1)}%`,
+            }
+          }
+        },
+        scales: {
+          x: {
+            title: { display: true, text: 'Recall', color: '#64748b', font: { size: 11 } },
+            ticks: { color: '#94a3b8', maxTicksLimit: 8 },
+            grid:  { color: 'rgba(0,0,0,.05)' },
+          },
+          y: {
+            title: { display: true, text: 'Precision', color: '#64748b', font: { size: 11 } },
+            min: 0, max: 1,
+            ticks: { color: '#94a3b8' },
+            grid:  { color: 'rgba(0,0,0,.05)' },
+          }
+        }
+      }
+    });
+  } catch(e) {
+    document.getElementById('accBadge').textContent = 'N/A';
+  }
+}
+
+loadMetrics();
+
+// ── Predict ────────────────────────────────────────────────────
+async function analyze() {
+  const age      = document.getElementById('age').value;
+  const sex      = document.getElementById('sex').value;
+  const chol     = document.getElementById('chol').value;
+  const trestbps = document.getElementById('trestbps').value;
+  const thalach  = document.getElementById('thalach').value;
+
+  if (!age || !chol || !trestbps || !thalach) {
+    alert('Please fill in Age, Cholesterol, Blood Pressure, and Heart Rate.');
+    return;
+  }
+
+  const btn = document.getElementById('analyzeBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Analyzing…';
+
+  const payload = {
+    age, sex, chol, trestbps, thalach,
+    cp:      document.getElementById('cp').value,
+    fbs:     document.getElementById('fbs').value,
+    restecg: document.getElementById('restecg').value,
+    exang:   document.getElementById('exang').value,
+    oldpeak: document.getElementById('oldpeak').value,
+    slope:   document.getElementById('slope').value,
+    ca:      document.getElementById('ca').value,
+    thal:    document.getElementById('thal').value,
+  };
+
+  try {
+    const res  = await fetch('/predict', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error);
+
+    const banner = document.getElementById('resultBanner');
+    const isDisease = data.prediction === 1;
+    const cls = isDisease ? 'disease' : 'healthy';
+
+    banner.className = `result-banner ${cls} animate`;
+    banner.innerHTML = `
+      <div class="result-label ${cls}">RESULT: ${data.status}</div>
+      <div class="result-risk ${cls}">${data.risk}</div>
+      <div class="result-prob">Prediction Probability: ${data.probability}%</div>
+    `;
+
+    setTimeout(() => banner.classList.remove('animate'), 600);
+
+  } catch(e) {
+    alert('Prediction error: ' + e.message + '\nMake sure Flask server is running.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Analyze Risk';
+  }
+}
+
+</script>
+</body>
+</html>
